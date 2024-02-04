@@ -4,13 +4,16 @@ document.getElementById("hourForm").addEventListener("submit", function (e) {
   e.preventDefault();
 
   const salary = parseFloat(document.getElementById("salary").value);
-  const weeklyHours = parseFloat(document.getElementById("weeklyHours").value);
   const date = document.getElementById("date").value;
   const startTime = document.getElementById("startTime").value;
   const endTime = document.getElementById("endTime").value;
 
-  const hourlyRate = salary / (4 * weeklyHours); // 4 semanas no mês
-  const extraHourlyRate = hourlyRate * 1.5;
+  const monthlyHours = 220;
+  const hourlyRate = salary / monthlyHours; // Taxa horária corrigida
+  const extraPercentage = document.querySelector('input[name="extraType"]:checked').value;
+  const extraMultiplier = 1 + (parseFloat(extraPercentage) / 100);
+  const extraHourlyRate = hourlyRate * extraMultiplier;
+
 
   const start = new Date("1970-01-01T" + startTime + "Z");
   const end = new Date("1970-01-01T" + endTime + "Z");
@@ -22,14 +25,24 @@ document.getElementById("hourForm").addEventListener("submit", function (e) {
 
   const totalExtra = (hours + minutes / 60) * extraHourlyRate;
 
-  saveData(date, timeWorked, totalExtra);
+  saveData(date, timeWorked, totalExtra, salary);
   updateTable();
 });
 
-function saveData(date, timeWorked, total) {
-  const currentData = JSON.parse(localStorage.getItem("extraHoursData")) || [];
+function saveData(date, timeWorked, total, salary, weeklyHours) {
+  const currentData = JSON.parse(localStorage.getItem('extraHoursData')) || [];
   currentData.push({ date, timeWorked, total });
-  localStorage.setItem("extraHoursData", JSON.stringify(currentData));
+  localStorage.setItem('extraHoursData', JSON.stringify(currentData));
+  localStorage.setItem('salary', salary);
+  localStorage.setItem('weeklyHours', weeklyHours);
+}
+
+function loadData() {
+  const savedSalary = localStorage.getItem('salary');
+
+  if(savedSalary) {
+      document.getElementById('salary').value = savedSalary;
+  }
 }
 
 function deleteData(index) {
@@ -59,7 +72,7 @@ function updateTable() {
                 <td>${item.date}</td>
                 <td>${item.timeWorked}</td>
                 <td>R$ ${item.total.toFixed(2)}</td>
-                <td><button class="btn btn-danger btn-sm" onclick="deleteData(${index})">Excluir</button></td>
+                <td><button class="btn btn-outline-danger btn-sm" onclick="deleteData(${index})">Excluir</button></td>
             </tr>
         `;
     resultTable.innerHTML += row;
@@ -108,4 +121,9 @@ document.getElementById("deleteAll").addEventListener("click", function () {
 });
 
 // Inicializa a tabela quando a página é carregada
-document.addEventListener("DOMContentLoaded", updateTable);
+document.addEventListener("DOMContentLoaded", () => {
+  isHidden = false;
+  toggleVisibility();
+  loadData()
+  updateTable()
+});
